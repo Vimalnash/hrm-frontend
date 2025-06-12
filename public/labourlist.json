@@ -1,0 +1,12 @@
+{
+  "labourlist": [
+    {
+      "teamName": "Sakthivel Team",
+      "labours": [{"labourName": "Labour1"}, {"labourName": "Labour2"}, {"labourName": "Labour3"}]
+    },
+    {
+      "teamName": "Gokul Team",
+      "labours": [{"labourName": "Labour1"}, {"labourName": "Labour2"}, {"labourName": "Labour3"}]
+    }
+  ]
+}
