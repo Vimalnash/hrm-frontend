@@ -5,10 +5,11 @@ import { IoIosContact } from "react-icons/io";
 import { useNavigate } from "react-router-dom";
 
 export function LabourShiftAssign() {
-    const {
+  const {
     labour, setLabour, attendanceData, 
     setAttendanceData, 
-    showNewEntry, setShowNewEntry
+    showNewEntry, setShowNewEntry,
+    countsState, setCountsState
   } = useAppContext();
 
   const navigate = useNavigate();
@@ -22,9 +23,6 @@ export function LabourShiftAssign() {
     return today.toISOString().split('T')[0];
   })
   const[project, setProject] = useState();
-
-  // const dateRef = useRef(today);
-  // const projectRef = useRef();
   const team = useRef();
 
   useEffect(()=> {
@@ -41,21 +39,22 @@ export function LabourShiftAssign() {
   },[attendaceDate, project])
 
     function addaDayToDate(date) {
-    console.log(date)
+    // console.log(date)
     const nextDate = new Date(date);
-    console.log(nextDate)
+    // console.log(nextDate)
     nextDate.setDate(nextDate.getDate() + 1)
     setAttendanceDate(nextDate.toISOString().split('T')[0])
   }
 
   function subtractaDayToDate(date) {
-    console.log(date)
+    // console.log(date)
     const nextDate = new Date(date);
-    console.log(nextDate)
+    // console.log(nextDate)
     nextDate.setDate(nextDate.getDate() - 1)
     setAttendanceDate(nextDate.toISOString().split('T')[0])
   }
 
+  // Filtering data to load on screen
   const handleShiftAssign = () => {
     // console.log(date.current.value)
     const selectedDate = attendaceDate;
@@ -64,23 +63,24 @@ export function LabourShiftAssign() {
     if (!selectedDate || !selectedProject) {
       alert("Required to select date and project to generate report")
     } else {
-      console.log("AttendanceDataFromDB", attendanceData)
+      // console.log("AttendanceDataFromDB", attendanceData)
       const filteredDateData = attendanceData
       .filter((val, idx) => {
         return val.date === attendaceDate && val.project === project
       })
-      console.log("filtered data", filteredDateData[0])
+      // console.log("filtered data", filteredDateData[0])
       setAttendanceLabourData(filteredDateData[0]);
       setShow(true)
     }
   }
 
-  
+  // Handling Submit button to save the data
   const handleSubmit = (e) => {
     e.preventDefault();
     handleShiftUpdate(e);
   }
 
+  // Handling Shift data to store in DB(web browserlocal Storage)
   const handleShiftUpdate = (e) => {
     e.preventDefault();
     const selectedDate = attendaceDate;
@@ -97,17 +97,17 @@ export function LabourShiftAssign() {
     }
 
     attendanceData.map((objVal, idx) => {
-      console.log("useeffectdate", date, project)
+      // console.log("useeffectdate", attendaceDate, project);
       if(objVal.date == attendaceDate && objVal.project == project) {
         const confirmResave = confirm("Confirm Saving Shift Data?");
         if (confirmResave) {
-          attendanceData[idx] = formAttendanceData
-          const newAttendanceData = [...attendanceData]
-          setAttendanceData(newAttendanceData)
+          attendanceData[idx] = formAttendanceData;
+          const newAttendanceData = [...attendanceData];
+          setAttendanceData(newAttendanceData);
           localStorage.setItem("attendanceDetails", JSON.stringify(newAttendanceData));
-          setProject("")
-          setDate("")
-          setSaveSuccess(true)
+          setProject("");
+          setAttendanceDate("");
+          setSaveSuccess(true);
           setTimeout(() => {
             setSaveSuccess(false)
             location.reload();
@@ -119,10 +119,10 @@ export function LabourShiftAssign() {
 
   return (
     <>
-    <PageTitle><p>Labour Attendance</p></PageTitle>
+    <PageTitle><p>Labour Attendance - ShiftAssign</p></PageTitle>
 
     <div className="mt-2 md:px-32 border-2 p-5">
-      <div className="my-4 flex flex-row gap-8">
+      <div className="my-4 flex flex-col gap-4 md:flex-row md:gap-8 justify-center items-end">
         <div className="flex flex-col gap-2">
           <label>Project</label>
           <select className="w-48 shadow-md select select-sm" onChange={(e)=>setProject(e.target.value)}>
@@ -157,16 +157,36 @@ export function LabourShiftAssign() {
           onClick={()=> addaDayToDate(attendaceDate)}
         >&gt;</button>
       </div>
-      <div className="w-full p-4 bg-blue-50 flex justify-around">
-        <button className="btn btn-sm bg-blue-400 text-white rounded-md">Labours</button>
-        <button className="btn btn-sm bg-blue-400 text-white rounded-md">At Works</button>
-        <button className="btn btn-sm bg-blue-400 text-white rounded-md"  onClick={() => {handleShiftAssign(); navigate("/shiftassign")} }>Shifts</button>
-        <button className="btn btn-sm bg-blue-400 text-white rounded-md" >Report</button>
+      <div className="w-full p-4 bg-blue-50 flex flex-wrap justify-around">
+        <button className="btn btn-sm bg-blue-400 text-white rounded-md">
+          Labours &#40;{countsState.laboursCount}&#41;
+        </button>
+        <button className="btn btn-sm bg-blue-400 text-white rounded-md">
+          At Works &#40;{countsState.presentCount}&#41;
+        </button>
+        <button className="btn btn-sm bg-blue-400 text-white rounded-md">
+          Shift &#40;{countsState.shiftAssignedCount}&#41;
+        </button>
+        <button className="btn btn-sm bg-blue-400 text-white rounded-md">
+          Absent &#40;{countsState.absentCount}&#41;
+        </button>
       </div>
-      <div className="w-full p-4 flex flex-col md:flex-row gap-2 justify-center items-center">
-        <button className="btn btn-xs bg-gray-100 border-gray-400" onClick={() => navigate("/labourattendance")}>Pending</button>
-        <button className="btn btn-xs bg-gray-100 border-gray-400" onClick={() => {navigate("/shiftassign"); handleShiftAssign(); } }>AtWork</button>
-        <button className="btn btn-xs bg-gray-100 border-gray-400" onClick={() => {navigate("/report/labourattendance"); handleReport();}}>Marked</button>
+      <div className="w-full p-4 flex flex-wrap gap-2 justify-center items-center">
+        <button 
+          className="btn btn-xs bg-gray-100 border-gray-400" 
+          onClick={() => navigate("/labourattendance")}
+          >Pending &#40;{countsState.laboursCount}&#41;
+        </button>
+        <button 
+          className="btn btn-xs bg-gray-100 border-gray-400" 
+          onClick={() => {navigate("/shiftassign"); 
+          handleShiftAssign(); } }
+        >AtWork &#40;{countsState.presentCount}&#41;</button>
+        <button 
+          className="btn btn-xs bg-gray-100 border-gray-400" 
+          onClick={() => {navigate("/report/labourattendance"); 
+          handleReport();}}
+        >Marked</button>
       </div>
       {
       show &&
@@ -182,6 +202,13 @@ export function LabourShiftAssign() {
                 teamDetails={teamDetails} />
               })
               }
+              <div className="flex justify-center">
+                <button type="submit" className="btn btn-success" onClick={(e) => handleSubmit(e)}>Save Shift</button>
+              </div>
+              <div>
+                {saveSuccess? <p className="text-green-400">SavedSuccessfully</p> : "" }
+                {saveFailure? <p className="text-red-400">Failed to Save</p> : "" }
+              </div>
             </div>
             )
             :
@@ -190,13 +217,7 @@ export function LabourShiftAssign() {
             )
           }
         </ul>
-        <div className="flex justify-center">
-          <button type="submit" className="btn btn-success" onClick={(e) => handleSubmit(e)}>Save Shift</button>
-        </div>
-        <div>
-          {saveSuccess? <p className="text-green-400">SavedSuccessfully</p> : "" }
-          {saveFailure? <p className="text-red-400">Failed to Save</p> : "" }
-        </div>
+
       </div>
       }
 
@@ -239,20 +260,22 @@ function LabourList({labourObj, labourIdx, teamIdx, teamDetails }) {
   const {labour, setLabour} = useAppContext();
   const [shiftSelected, setShiftSelected] = useState();
 
+  // Handling shift selection for each labour and render to highlight selected.
   const handleShiftChange = async (e, shiftval, labourObj, labourIdx) => {
     e.preventDefault();
-    console.log("selectedshift", shiftval)
+    // console.log("selectedshift", shiftval)
     let cacheLabour = Object.assign([], teamDetails);
     setShiftSelected(shiftval);
 
     if(labourObj.labourName == await cacheLabour[teamIdx].labours[labourIdx].labourName) {
       cacheLabour[teamIdx].labours[labourIdx] = {...labourObj, shift: shiftval}
     }
-    console.log("cacheLabour", cacheLabour)
+    // console.log("cacheLabour", cacheLabour)
 
     setLabour(cacheLabour);
   }
 
+  // Handling Revoke Button
   const handleRevoke = async (e, labourObj, labourIdx) => {
     // console.log("Revoke")
     e.preventDefault();
@@ -261,7 +284,7 @@ function LabourList({labourObj, labourIdx, teamIdx, teamDetails }) {
     if(labourObj.labourName == await cacheLabour[teamIdx].labours[labourIdx].labourName) {
       cacheLabour[teamIdx].labours[labourIdx] = {...labourObj, shift: ""}
     }
-    console.log("cacheLabour", cacheLabour)
+    // console.log("cacheLabour", cacheLabour)
 
     setLabour(cacheLabour);
   }
@@ -274,7 +297,7 @@ function LabourList({labourObj, labourIdx, teamIdx, teamDetails }) {
             <span><IoIosContact /></span>
             <span>{labourObj.labourName}</span>
           </div>
-          <div className="flex md-flex-row gap-2">
+          <div className="flex flex-wrap md-flex-row gap-2">
             <button  
               onClick={(e)=>{handleShiftChange(e, "0.25", labourObj, labourIdx)}} 
               className={`w-8 btn btn-xs rounded-lg border-gray-400 ${(shiftSelected || labourObj.shift) == 0.25? "bg-orange-200" : ""} `}>

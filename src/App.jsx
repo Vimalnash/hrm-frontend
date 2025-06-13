@@ -1,10 +1,10 @@
 import React from "react";
 import { Route, Routes } from "react-router-dom"
 import { Sidebar } from "./components/sidebar"
-import { LabourAttendance } from "./pages/labour-attendance"
-import { LabourAttendanceReport } from "./pages/labour-attendance-report";
 import { HomePage } from "./pages/HomePage";
+import { LabourAttendance } from "./pages/labour-attendance"
 import { LabourShiftAssign } from "./pages/labour-shiftassign";
+import { LabourAttendanceReport } from "./pages/labour-attendance-report";
 
 function App() {
 
@@ -22,7 +22,6 @@ function App() {
           <Route path="/shiftassign" element={<LabourShiftAssign />} />
         </Routes>
       </main>
-
     </div>
     </>
   )

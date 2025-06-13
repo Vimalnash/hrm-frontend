@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 
+// Main SideBar
 export function Sidebar() {
   return (
     <div className="drawer lg:drawer-open">
@@ -15,8 +16,8 @@ export function Sidebar() {
           {/* Sidebar content here */}
           <li><Link to="/">Home</Link></li>
           <li><Link to="/labourattendance">LabourAttendance</Link></li>
-          <li><Link to="/report/labourattendance">LabourAttendanceReport</Link></li>
           <li><Link to="/shiftassign">LabourShiftAssign</Link></li>
+          <li><Link to="/report/labourattendance">LabourAttendanceReport</Link></li>
         </ul>
       </div>
     </div>

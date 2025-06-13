@@ -1,9 +1,9 @@
 import { useRef } from "react";
-import { useAppContext } from "../context/appcontext"
+import { useAppContext } from "../../context/appcontext"
 
+// Function to add a LabourName from the popup in attendance marking form
 export const CustomModal = ({ isOpen, onClose, title, content, teamObj }) => {
   const {labour, setLabour} = useAppContext();
-
   const inputLabourRef = useRef(null);
 
   // Function to add labour to a team for attendance marking
@@ -11,22 +11,18 @@ export const CustomModal = ({ isOpen, onClose, title, content, teamObj }) => {
     const inputLabourValue = {
       labourName: inputLabourRef.current.value,
     } 
-    // console.log("inputLabourValue", inputLabourValue);
-
     let cacheLabour = Object.assign([], labour);
-    // console.log("CacheLabour", cacheLabour);
-
-    await labour.map((labour,idx) => {
-      // console.log(labour.teamName, val.teamName)
+    await labour.some((labour,idx) => {
       if(labour.teamName == teamObj.teamName) {
-        // console.log("TeamName", val.teamName);
         cacheLabour[idx].labours.push(inputLabourValue)
       }
+      return true
     })
 
     inputLabourRef.current.value = "";
     setLabour(cacheLabour);
   }
+
   return (
     <>
       {isOpen && (
@@ -63,4 +59,3 @@ export const CustomModal = ({ isOpen, onClose, title, content, teamObj }) => {
     </>
   );
 };
-

@@ -7,7 +7,9 @@ import { useNavigate } from "react-router-dom";
 import { TeamList } from "../components/Modals/teamlist";
 import { FaRegEdit } from "react-icons/fa";
 
-export function LabourAttendance() {
+
+export function AttendanceLayout({children}) {
+  
   const {
     labour, setLabour, attendanceData, 
     setAttendanceData, 
@@ -109,90 +111,9 @@ export function LabourAttendance() {
     setAttendanceDate(nextDate.toISOString().split('T')[0]);
   }
 
-  // Form Submmit handling
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if(showNewEntry) {
-      handleNewSave(e);
-    } else {
-      handleUpdate(e);
-    }
-  }
-
-  // Handling Existing Attendance Data Updating
-  const handleUpdate = (e) => {
-    e.preventDefault();
-    const selectedDate = attendaceDate;
-    const selectedProject = project;
-
-    if(!selectedDate || !selectedProject) {
-      alert("! Required fields  Date, Project");
-    }
-
-    let formAttendanceData = {
-      date : selectedDate,
-      project : selectedProject,
-      teamDetails: labour
-    }
-
-    // Mapping to update the exisiting data to database(browser local storage)
-    attendanceData.map((objVal, idx) => {
-      console.log("useeffectdate", attendaceDate, project);
-      if(objVal.date == attendaceDate && objVal.project == project) {
-        const confirmResave = confirm("Do you wish to Resave the Data?");
-        if (confirmResave) {
-          attendanceData[idx] = formAttendanceData;
-          const newAttendanceData = [...attendanceData];
-          setAttendanceData(newAttendanceData);
-          localStorage.setItem("attendanceDetails", JSON.stringify(newAttendanceData));
-          setProject("");
-          setAttendanceDate("");
-          setSaveSuccess(true);
-          setTimeout(() => {
-            setSaveSuccess(false);
-            location.reload();
-          }, 1000);
-        }
-      }
-    })
-  }
-
-  // Handling New Attendance Data Saving
-  const handleNewSave = (e) => {
-    e.preventDefault();
-    const selectedDate = attendaceDate;
-    const selectedProject = project;
-
-    if(!selectedDate || !selectedProject) {
-      alert("! Required fields  Date, Project");
-    }
-
-    let formAttendanceData = {
-      date : selectedDate,
-      project : selectedProject,
-      teamDetails: labour
-    }
-
-    // console.log("formattendancedata", formAttendanceData);
-    const newAttendanceData = [...attendanceData, formAttendanceData]
-    setAttendanceData(newAttendanceData);
-    localStorage.setItem("attendanceDetails", JSON.stringify(newAttendanceData));
-    setProject("");
-    setAttendanceDate("");
-    setSaveSuccess(true);
-    setTimeout(() => {
-      setSaveSuccess(false);
-      location.reload();
-    }, 1000);
-  }
-
   return (
-    <>
-    <PageTitle><p>Labour Attendance-Attendance Marking</p></PageTitle>
-    
-    <div className="mt-2 md:px-32 border-2 p-5" >
+    <div className="p-2 border-2 text-center">
       <div className="my-4 flex flex-col gap-4 md:flex-row md:gap-8 justify-center items-end">
-
         <div className="flex flex-col gap-2">
           <label>Project</label>
           <select className="w-48 shadow-md select select-sm" onChange={(e)=>setProject(e.target.value)}>
@@ -283,131 +204,6 @@ export function LabourAttendance() {
         >Marked</button>
       </div>
 
-      <div className="my-4">
-        <ul className="">
-          {
-            teamWiseLaboursList&& (
-              teamWiseLaboursList.map((val,idx) => {
-                return <LabourTeamList key={idx} teamObj={val} teamIdx={idx} />
-              })
-            )
-          }
-        </ul>
-      </div>
-
-      <div className="flex justify-center">
-        {
-          showNewEntry ?
-          <button 
-            type="submit" 
-            className="btn btn-success" 
-            onClick={(e) => handleSubmit(e)}
-          >Save Attendance</button>
-          :
-          <button 
-            type="submit" 
-            className="btn btn-success" 
-            onClick={(e) => handleSubmit(e)}
-          >Update Attendance</button>
-        }
-      </div>
-
-      <div>
-        {saveSuccess? <p className="text-green-400">SavedSuccessfully</p> : "" }
-        {saveFailure? <p className="text-red-400">Failed to Save</p> : "" }
-      </div>
-
     </div>
-    </>
-  )
-}
-
-// Rendering On Screen TeamWise Labours List
-function LabourTeamList({teamObj, teamIdx}) {
-  const {labour, setLabour} = useAppContext();
-  
-  const [isModalOpen, setModalOpen] = useState(false);
-
-  // Handling Modal Open and Close Modals
-  const openModal = () => setModalOpen(true);
-  const closeModal = () => setModalOpen(false);
-
-  // Handling Present Button logic
-  const handlePresent = (labourObj, labourIdx) => {
-    let cacheLabour = Object.assign([], labour);
-    console.log("cachelabour", cacheLabour);
-    // console.log("teamIdx", teamIdx);
-    // console.log("labourObj", labourObj);
-    // console.log("LabourIdx", labourIdx);
-    // console.log("cachelabourTeamIdx", cacheLabour[teamIdx]);
-
-    if(labourObj.labourName == cacheLabour[teamIdx].labours[labourIdx].labourName) {
-      cacheLabour[teamIdx].labours[labourIdx] = {...labourObj, status: "P"}
-    }
-
-    setLabour(cacheLabour);
-  }
-
-  // Handling Absent Button Logic
-  const handleAbsent = (labourObj, labourIdx) => {
-    let cacheLabour = Object.assign([], labour);
-
-    if(labourObj.labourName == cacheLabour[teamIdx].labours[labourIdx].labourName) {
-      cacheLabour[teamIdx].labours[labourIdx] = {...labourObj, status: "A"}
-    }
-
-    setLabour(cacheLabour);
-  }
-
-  return (
-    <li className="p-2 border-b-2 border-blue-200">
-      <div className="mb-2 text-blue-300">
-        {teamObj.teamName} 
-        <span className="p-6">
-          <button className="btn btn-xs" onClick={openModal}>Add Labour</button>
-          <CustomModal
-            isOpen={isModalOpen}
-            onClose={closeModal}
-            title="Add Labour"
-            content=""
-            teamObj = {teamObj}
-          />
-        </span>
-      </div>
-      <div className="mb-4">
-        <ul>
-          {teamObj.labours.map((labourObj, labourIdx) => {
-            return (
-              <li key={labourIdx} className="mb-4">
-                <div className="flex flex-col md:grid md:grid-cols-4 md:gap-4">
-                  <div className="col-span-2 flex flex-row items-center ">
-                    <span><IoIosContact /></span>
-                    <span>{labourObj.labourName}</span>
-                  </div>
-                  <div className="flex flex-row items-center">Status : &nbsp;
-                    {
-                      labourObj.status == "P" ? 
-                      <span className="font-semibold text-green-500">{labourObj.status}</span>
-                      :
-                      <span className="font-semibold text-red-500">{labourObj.status}</span>
-                    }
-                  </div>
-                  <div className="flex gap-2">
-                    <button 
-                      className="btn btn-xs btn-outline btn-success" 
-                      onClick={() => handlePresent(labourObj, labourIdx)}
-                    >Present</button>
-                    <button 
-                      className="btn btn-xs btn-outline btn-error" 
-                      onClick={() => handleAbsent(labourObj, labourIdx)}
-                    >Absent</button>
-                  </div >
-                </div> 
-              </li>
-            )
-          })}
-        </ul>
-      </div>
-    </li>
   )
 }

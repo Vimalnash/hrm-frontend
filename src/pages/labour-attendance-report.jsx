@@ -5,11 +5,17 @@ import { IoIosContact } from "react-icons/io";
 import { useNavigate } from "react-router-dom";
 
 export function LabourAttendanceReport() {
-  const {attendanceData, setAttendanceData} = useAppContext();
+  const {attendanceData, 
+    setAttendanceData, 
+    teamNamesArray,
+    countsState, setCountsState
+  } = useAppContext();
+
   const navigate = useNavigate();
 
   const [attendanceLabourData, setAttendanceLabourData] = useState();
   const [show, setShow] = useState(false);
+  const [selectedTeam, setSelectedTeam] = useState("All");
   const [presentCount, setPresentCount] = useState(0);
   const [absentCount, setAbsentCount] = useState(0);
 
@@ -18,27 +24,28 @@ export function LabourAttendanceReport() {
     return today.toISOString().split('T')[0];
   })
   const[project, setProject] = useState();
-
-  // const dateRef = useRef(today);
-  // const projectRef = useRef();
   const team = useRef();
 
+  // Setting Saved data to state.
   useEffect(()=> {
     setAttendanceData(JSON.parse(localStorage.getItem("attendanceDetails")))
   }, [])
   
+  // Setting not to show report data when filters changed.
   useEffect(() => {
     setShow(false);
   },[attendaceDate, project])
 
+  // Show Next Date from current selected Date
   function addaDayToDate(date) {
-    console.log(date)
+    console.log(date);
     const nextDate = new Date(date);
     console.log(nextDate)
     nextDate.setDate(nextDate.getDate() + 1)
     setAttendanceDate(nextDate.toISOString().split('T')[0])
   }
 
+  // Show Previous Date from the current selected date
   function subtractaDayToDate(date) {
     console.log(date)
     const nextDate = new Date(date);
@@ -68,7 +75,10 @@ export function LabourAttendanceReport() {
   }
 
   function findPresentCount (filteredDateData) {
-    const presentDataCount = filteredDateData[0].teamDetails.reduce((acc, teamObj) => {
+    if (!filteredDateData[0]) {
+      setPresentCount(0)
+    } else {
+      const presentDataCount = filteredDateData[0].teamDetails.reduce((acc, teamObj) => {
         let count = 0
         for (let i=0; i<teamObj.labours.length; i++) {
           if( teamObj.labours[i].status == "P" && (
@@ -87,30 +97,36 @@ export function LabourAttendanceReport() {
         return acc
       },0)
 
-    setPresentCount(presentDataCount)
+      setPresentCount(presentDataCount)
+    }
+    
   }
 
   function findAbsentCount (filteredDateData) {
-    const absentDataCount = filteredDateData[0].teamDetails.reduce((acc, teamObj) => {
-        let count = 0
-        for (let i=0; i<teamObj.labours.length; i++) {
-          if( teamObj.labours[i].status == "A") {
-              count = count + 1;
-            }
-        }
-        acc = acc + count
-        return acc
-      },0)
-
-    setAbsentCount(absentDataCount)
+    if (!filteredDateData[0]) {
+      setAbsentCount(0)
+    } else {
+      const absentDataCount = filteredDateData[0].teamDetails.reduce((acc, teamObj) => {
+          let count = 0
+          for (let i=0; i<teamObj.labours.length; i++) {
+            if( teamObj.labours[i].status == "A") {
+                count = count + 1;
+              }
+          }
+          acc = acc + count
+          return acc
+        },0)
+  
+      setAbsentCount(absentDataCount)
+    }
   }
 
   return (
     <>
-    <PageTitle><p>Labour Attendance</p></PageTitle>
+    <PageTitle><p>Labour Attendance - Report</p></PageTitle>
 
     <div className="mt-2 md:px-32 border-2 p-5">
-      <div className="my-4 flex flex-row gap-8">
+      <div className="my-4 flex flex-col gap-4 md:flex-row md:gap-8 justify-center items-end">
         <div className="flex flex-col gap-2">
           <label>Project</label>
           <select className="w-48 shadow-md select select-sm" onChange={(e)=>setProject(e.target.value)}>
@@ -121,10 +137,13 @@ export function LabourAttendanceReport() {
         </div>
         <div className="flex flex-col gap-2">
           <label>Team</label>
-          <select ref={team} className="w-48 shadow-md select select-sm">
-            <option></option>
-            <option value={"Sakthival"}>Sakthival Team</option>
-            <option value={"Gokul"}>Gokul Team</option>
+          <select ref={team} className="w-48 shadow-md select select-sm" onChange={(e)=>setSelectedTeam(e.target.value)}>
+            <option value={"All"}>All</option>
+            {
+              teamNamesArray.map((teamName) => {
+                return <option key={teamName} value={teamName}>{teamName}</option>
+              })
+            }
           </select>
         </div>
       </div>
@@ -145,22 +164,42 @@ export function LabourAttendanceReport() {
           onClick={()=> addaDayToDate(attendaceDate)}
         >&gt;</button>
       </div>
-      <div className="w-full p-4 bg-blue-50 flex justify-around">
-        <button className="btn btn-sm bg-blue-400 text-white rounded-md">Labours</button>
-        <button className="btn btn-sm bg-blue-400 text-white rounded-md">At Works</button>
-        <button className="btn btn-sm bg-blue-400 text-white rounded-md">Shifts</button>
-        <button className="btn btn-sm bg-blue-400 text-white rounded-md" onClick={handleReport}>Report</button>
+      <div className="w-full p-4 bg-blue-50 flex flex-wrap justify-around">
+        <button className="btn btn-sm bg-blue-400 text-white rounded-md">
+          Labours &#40;{countsState.laboursCount}&#41;
+        </button>
+        <button className="btn btn-sm bg-blue-400 text-white rounded-md">
+          At Works &#40;{countsState.presentCount}&#41;
+        </button>
+        <button className="btn btn-sm bg-blue-400 text-white rounded-md">
+          Shift &#40;{countsState.shiftAssignedCount}&#41;
+        </button>
+        <button className="btn btn-sm bg-blue-400 text-white rounded-md">
+          Absent &#40;{countsState.absentCount}&#41;
+        </button>
       </div>
-      <div className="w-full p-4 flex flex-col md:flex-row gap-2 justify-center items-center">
-        <button className="btn btn-xs bg-gray-100 border-gray-400" onClick={() => navigate("/labourattendance")}>Pending</button>
-        <button className="btn btn-xs bg-gray-100 border-gray-400" onClick={() => {navigate("/shiftassign"); handleShiftAssign(); } }>AtWork</button>
-        <button className="btn btn-xs bg-gray-100 border-gray-400" onClick={() => {navigate("/report/labourattendance"); handleReport();}}>Marked</button>
+      <div className="w-full p-4 flex flex-wrap gap-2 justify-center items-center">
+        <button 
+          className="btn btn-xs bg-gray-100 border-gray-400" 
+          onClick={() => navigate("/labourattendance")}
+          >Pending &#40;{countsState.laboursCount}&#41;
+        </button>
+        <button 
+          className="btn btn-xs bg-gray-100 border-gray-400" 
+          onClick={() => {navigate("/shiftassign"); 
+          handleShiftAssign(); } }
+        >AtWork &#40;{countsState.presentCount}&#41;</button>
+        <button 
+          className="btn btn-xs bg-gray-100 border-gray-400" 
+          onClick={() => {navigate("/report/labourattendance"); 
+          handleReport();}}
+        >Marked</button>
       </div>
       {
       show &&
       <div className="my-4">
         <p className="w-full h-8 bg-green-500 text-white flex items-center justify-center">
-          Present+ShiftAssigned &#40;{presentCount}&#41;
+          Present + ShiftAssigned &#40;{presentCount}&#41;
         </p>
         <ul className="">
           {
@@ -168,7 +207,9 @@ export function LabourAttendanceReport() {
             (
             <div>
               {
-              attendanceLabourData.teamDetails.map((teamObj, teamIdx) => {
+              attendanceLabourData.teamDetails
+              .filter((teamObj) => selectedTeam == "All"? true : teamObj.teamName == selectedTeam)
+              .map((teamObj, teamIdx) => {
                 // console.log("project", val.project, project.current.value, val.date, date.current.value)
                 // console.log("teammap", teamObj)
                 return <LabourTeamList key={teamIdx} teamObj={teamObj} teamIdx={teamIdx} status="P" />
@@ -192,7 +233,9 @@ export function LabourAttendanceReport() {
             (
             <div>
               {
-              attendanceLabourData.teamDetails.map((teamObj, teamIdx) => {
+              attendanceLabourData.teamDetails
+              .filter((teamObj) => selectedTeam == "All"? true : teamObj.teamName == selectedTeam)
+              .map((teamObj, teamIdx) => {
                 // console.log("teammap", teamObj)
                 return <LabourTeamList key={teamIdx} teamObj={teamObj} teamIdx={teamIdx} status="A" />
               })
