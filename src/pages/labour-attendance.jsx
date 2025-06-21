@@ -1,97 +1,127 @@
 import { useEffect, useRef, useState } from "react";
-import { CustomModal } from "../components/Modals/labourCreationModal-Single";
 import { PageTitle } from "../components/pagetitle";
 import { useAppContext } from "../context/appcontext";
 import { IoIosContact } from "react-icons/io";
 import { useNavigate } from "react-router-dom";
 import { TeamList } from "../components/Modals/teamlist";
 import { FaRegEdit } from "react-icons/fa";
+import { AddLabourModalSingle } from "../components/Modals/AddLabourModalSingle";
+import { AddLabourModalMultiple } from "../components/Modals/AddLabourModalMultiple";
 
 export function LabourAttendance() {
   const {
-    labour, setLabour, attendanceData, 
-    setAttendanceData, 
+    labours, setLabours,
+    teams, setTeams,
+    attendanceDb, setAttendanceDb,
     showNewEntry, setShowNewEntry,
     teamNamesArray,
-    countsState, setCountsState
+    countsState, setCountsState,
   } = useAppContext();
 
   const navigate = useNavigate();
 
-  const [teamWiseLaboursList,setTeamWiseLaboursList] = useState();
   const [saveSuccess,setSaveSuccess] = useState(false);
   const [saveFailure,setSaveFailure] = useState(false);
   const [isModalOpen, setModalOpen] = useState(false);
   const [activeScreenBtn, setActiveScreenBtn] = useState(false);
-
-  const [attendaceDate, setAttendanceDate] = useState(() => {
+  const [selectedTeams, setSelectedTeams] = useState([]);
+  const [localLabours, setLocalLabours] = useState([]);
+  const [labourAttendance, setLabourAttendance] = useState([]);
+  const [attendanceDate, setAttendanceDate] = useState(() => {
     return new Date().toISOString().split('T')[0];
   })
-  const[project, setProject] = useState();
+  const[project, setProject] = useState("");
   const team = useRef();
-  // console.log("date&project", date, project, attendanceData);
 
-  // Setting attendance data from the backend if present(i.e BrowserLocal Storage)
-  useEffect(()=> {
-    const localCache = JSON.parse(localStorage.getItem("attendanceDetails"))
-    // console.log(localCache);
-    if(!localCache) { 
-      setAttendanceData([]);
-    } else setAttendanceData(localCache)
-  }, [])
-
-  // Setting Local state TeamwiseLabourArray based on changes in global state.
-  useEffect(() => {
-    setTeamWiseLaboursList(labour);
-  },[labour])
-
-  // console.log("teamwiselabourlist",teamWiseLaboursList);
-  // Filtering TeamwiseLabourData to load existing data on screen based on selected Date and Project 
-  useEffect(()=>{
-    attendanceData.some((objVal, idx) => {
-      // console.log("useeffectdate", attendaceDate, project)
-      if(objVal.date === attendaceDate && objVal.project === project) {
-        alert("Data Available for this Date and project");
-        setLabour(objVal.teamDetails);
-        setShowNewEntry(false);
-        const presentabsentshiftCount =  objVal.teamDetails.reduce((acc, teamObj) => {
-          let atWorkcount = 0;
-          let absentcount = 0;
-          let shiftcount = 0;
-          for (let i=0; i<teamObj.labours.length; i++) {
-            if (teamObj.labours[i].status? teamObj.labours[i].status == "P" : false) {
-              atWorkcount = atWorkcount + 1;
-            }
-            if (teamObj.labours[i].status? teamObj.labours[i].status == "A" : false) {
-              absentcount = absentcount + 1;
-            }
-            if (teamObj.labours[i].shift? (teamObj.labours[i].shift != "" || teamObj.labours[i].shift != null) : false) {
-              shiftcount += 1;
-            }
-          }
-          acc.presentCount += atWorkcount;
-          acc.absentCount += absentcount;
-          acc.shiftAssignedCount += shiftcount;
-          return acc
-        },{ presentCount: 0, absentCount: 0, shiftAssignedCount: 0})
-        setCountsState({...countsState, ...presentabsentshiftCount })
-        return true
-      }
-      else {
-        setCountsState({...countsState, presentCount: 0, absentCount: 0, shishiftAssignedCountftAssigned: 0})
-      }
-    })
-  },[attendaceDate, project])
-
-  // Team Selected from MultileSelect for attendance marking
-  function setSelectedTeam(e) {
-    const selectedTeamLaboursList = labour.filter((val) => e.target.value == "All" ? true :  val.teamName == e.target.value)
-    setTeamWiseLaboursList(selectedTeamLaboursList);
-  }
+  const [loadData, setLoadData] = useState(false);
   
   // Modal Open and Close Functions
   const openModal = () => setModalOpen(true);
   const closeModal = () => setModalOpen(false);
+  const [isModalOpenSingle, setModalOpenSingle] = useState(false);
+  const [isModalOpenMultiple, setModalOpenMultiple] = useState(false);
+
+  // Handling Modal Open and Close Modals
+  const openModalSingle = () => setModalOpenSingle(true);
+  const closeModalSingle = () => setModalOpenSingle(false);
+  const openModalMultiple = () => setModalOpenMultiple(true);
+  const closeModalMultiple = () => setModalOpenMultiple(false);
+
+  // console.log("dbAttendance",dbAttendance)
+  // console.log("labourAttendance",labourAttendance);
+  // console.log("labours",labours);
+  // console.log("loadData",loadData);
+  // console.log("selectedTeams",selectedTeams);
+
+  // Getting Global State from local DB as causing error in batch update the same array when used in AppContext setfunction. and when applying changes in one array it affects in another array variable
+  useEffect(()=> {
+    const dbTeamLabourListCache = JSON.parse(localStorage.getItem("dbTeamLabourList"))
+    if (!dbTeamLabourListCache) {
+      const baseLabourList = JSON.parse(sessionStorage.getItem("dbTeamLabourList"));
+      localStorage.setItem("dbTeamLabourList", JSON.stringify(baseLabourList));
+      // labours Array set
+      setLabours(baseLabourList.labours);
+      setLocalLabours(baseLabourList.labours);
+      // TeamsArraySet
+      setTeams(baseLabourList.teams);
+      setSelectedTeams(baseLabourList.teams);
+      setCountsState((prev) => ({...prev, laboursCount: baseLabourList.labours.length}));
+    } else {
+      // labours Array set
+      setLabours(dbTeamLabourListCache.labours);
+      setLocalLabours(dbTeamLabourListCache.labours);
+      // TeamsArraySet
+      setTeams(dbTeamLabourListCache.teams);
+      setSelectedTeams(dbTeamLabourListCache.teams);
+      setCountsState((prev) => ({...prev, laboursCount: dbTeamLabourListCache.labours.length}));
+    }
+
+    let attendanceDbCache = JSON.parse(localStorage.getItem("attendanceDb"))
+
+    if (!attendanceDbCache) {
+      localStorage.setItem("attendanceDb", JSON.stringify([]))
+    }
+  }, [])
+
+    useEffect(()=> {
+  }, [])
+
+  // Filtering TeamwiseLabourData to load existing data on screen based on selected Date and Project 
+  useEffect(()=>{
+    const selectedDate = attendanceDate;
+    const selectedProject = project;
+    if(!selectedDate || !selectedProject) {
+      alert("! Required fields  Date & Project");
+      return;
+    }
+    
+    setLoadData(false);
+    setShowNewEntry(true);
+    setCountsState((prev) => ({
+        ...prev, 
+        presentCount: 0, 
+        absentCount: 0, 
+        pendingAttCount: 0,
+        shiftAssignedCount: 0,
+        pendingShiftCount: 0,
+        markedCount: 0,
+        presentshiftcount: 0,
+        projectAbsentCount: 0
+      }))
+  },[attendanceDate, project])
+
+  // Setting Count for Pending to mark Attendance ehen labour list changes
+  useEffect(() => {
+    const dbTeamLabourListCache = JSON.parse(localStorage.getItem("dbTeamLabourList"))
+    setSelectedTeams(teams);
+    setCountsState((prev) => ({...prev, laboursCount: dbTeamLabourListCache.labours.length, pendingAttCount: labours.length}))
+  }, [labours])
+
+  // Team Selected from MultileSelect for attendance marking
+  function setSelectedTeam(e) {
+    const selectedTeam = localLabours.filter((val) => e.target.value == "All" ? true :  val.teamName == e.target.value)
+    setLabours(selectedTeam);
+  }
 
   // Show Next Date from current selected Date
   function addaDayToDate(date) {
@@ -114,76 +144,234 @@ export function LabourAttendance() {
     e.preventDefault();
     if(showNewEntry) {
       handleNewSave(e);
-    } else {
+    } 
+    else {
       handleUpdate(e);
     }
   }
 
-  // Handling Existing Attendance Data Updating
+  // Handling Pending Attendance Data Saving for the selected Date and Project
   const handleUpdate = (e) => {
     e.preventDefault();
-    const selectedDate = attendaceDate;
+    const selectedDate = attendanceDate;
     const selectedProject = project;
 
     if(!selectedDate || !selectedProject) {
       alert("! Required fields  Date, Project");
+      return;
     }
 
-    let formAttendanceData = {
-      date : selectedDate,
-      project : selectedProject,
-      teamDetails: labour
+    // Updating attendance Marked data in previous DB
+    function newLabourAdd(labour) {
+      const labourNewAttList = labourAttendance.filter(labourObj => {
+        // console.log("labourobj", labourObj)
+        return (labour.labourName === labourObj.labourName && labour.teamName === labourObj.teamName)
+      })
+
+      // console.log("newLabouradd", labourNewAttList);
+      if(labourNewAttList.length < 1)
+        return labour
+      return labourNewAttList[0];
     }
 
-    // Mapping to update the exisiting data to database(browser local storage)
-    attendanceData.map((objVal, idx) => {
-      console.log("useeffectdate", attendaceDate, project);
-      if(objVal.date == attendaceDate && objVal.project == project) {
-        const confirmResave = confirm("Do you wish to Resave the Data?");
-        if (confirmResave) {
-          attendanceData[idx] = formAttendanceData;
-          const newAttendanceData = [...attendanceData];
-          setAttendanceData(newAttendanceData);
-          localStorage.setItem("attendanceDetails", JSON.stringify(newAttendanceData));
-          setProject("");
-          setAttendanceDate("");
-          setSaveSuccess(true);
-          setTimeout(() => {
-            setSaveSuccess(false);
-            location.reload();
-          }, 1000);
-        }
-      }
-    })
-  }
+    const attendanceDbCache = JSON.parse(localStorage.getItem("attendanceDb"));
+    const updatedData = attendanceDbCache.map((labour) => {
+      // console.log("InsideMappingupdatedData", labour);
+      if(labour.attendanceDate === selectedDate && labour.status === "") {
+        return newLabourAdd(labour)
+      } else return labour
+    });
+    // console.log("updatedData",updatedData);
 
-  // Handling New Attendance Data Saving
-  const handleNewSave = (e) => {
-    e.preventDefault();
-    const selectedDate = attendaceDate;
-    const selectedProject = project;
-
-    if(!selectedDate || !selectedProject) {
-      alert("! Required fields  Date, Project");
-    }
-
-    let formAttendanceData = {
-      date : selectedDate,
-      project : selectedProject,
-      teamDetails: labour
-    }
-
-    // console.log("formattendancedata", formAttendanceData);
-    const newAttendanceData = [...attendanceData, formAttendanceData]
-    setAttendanceData(newAttendanceData);
-    localStorage.setItem("attendanceDetails", JSON.stringify(newAttendanceData));
-    setProject("");
-    setAttendanceDate("");
+    let formAttendanceData = [...updatedData];
+    // console.log("UpdateSaveformAttendanceData",formAttendanceData);
+    localStorage.setItem("attendanceDb", JSON.stringify(formAttendanceData));
+    setLabourAttendance([]);
     setSaveSuccess(true);
     setTimeout(() => {
       setSaveSuccess(false);
-      location.reload();
+      // location.reload();
     }, 1000);
+  }
+
+  // Handling New Save for Date and Project
+  const handleNewSave = (e) => {
+    e.preventDefault();
+    const selectedDate = attendanceDate;
+    const selectedProject = project;
+
+    if(!selectedDate || !selectedProject) {
+      alert("! Required fields  Date, Project");
+      return;
+    }
+
+    let attendanceDbCache = JSON.parse(localStorage.getItem("attendanceDb"));
+
+    if (!attendanceDbCache) {
+      attendanceDbCache = [];
+    }
+
+    const pendingAttStatusList = labours.map((labour) => {
+      return ({...labour, attendanceDate: selectedDate, project: "", status: ""})
+    })
+
+    let formAttendanceData = [...attendanceDbCache, ...labourAttendance, ...pendingAttStatusList];
+
+    // console.log("NewSaveformAttendanceData", formAttendanceData)
+    localStorage.setItem("attendanceDb", JSON.stringify(formAttendanceData));
+    setLabourAttendance([]);
+    setProject("");
+    setSaveSuccess(true);
+    setTimeout(() => {
+      setSaveSuccess(false);
+      // location.reload();
+    }, 1000);
+  }
+  
+
+  // Handle Pending Button Click to Load the data for the selected date and Project
+  function handleAttendancePending(e) {
+    e.preventDefault();
+    navigate("/labourattendance");
+    const selectedDate = attendanceDate;
+    const selectedProject = project;
+    
+    setLabourAttendance([]);
+
+    if(!selectedDate || !selectedProject) {
+      alert("! Required fields  Date & Project");
+      return;
+    }
+    // console.log(selectedDate, selectedProject);
+
+    let attendanceDbCache = JSON.parse(localStorage.getItem("attendanceDb"))
+    
+    if (!attendanceDbCache) {
+      attendanceDbCache = [];
+    }
+
+    if(attendanceDbCache.length > 0) {
+      let dataAvailable = false;
+      attendanceDbCache.some((labour, idx) => {
+        if(labour.attendanceDate === selectedDate) {
+          alert("Data Available for this Date");
+          dataAvailable = true;
+          
+          const filteredAttendanceDbCache = attendanceDbCache.filter((labour) => labour.attendanceDate === selectedDate);
+
+          const pendingAttList = filteredAttendanceDbCache.filter((labour) => labour.status === "");
+
+          const pendingShiftList = filteredAttendanceDbCache.filter((labour) => {
+            return labour.project === selectedProject && labour.status === "P" && (labour.shift === "" || labour.shift === undefined);
+          });
+
+          const markedList = filteredAttendanceDbCache.filter((labour) => {
+            return labour.project === selectedProject && (labour.status === "P" && (labour.shift !== "" ) || labour.status === "A")
+          });
+
+          setLabours(pendingAttList);
+          setLocalLabours(pendingAttList);
+          setShowNewEntry(false);
+          let atWorkcount = 0;
+          let absentcount = 0;
+          let shiftcount = 0;
+          let presentshiftcount = 0;
+          let projectAbsentCount = 0;
+          filteredAttendanceDbCache.forEach((labour) => {
+              if (labour.status? labour.status == "P" : false) {
+                atWorkcount = atWorkcount + 1;
+              }
+              if (labour.status? labour.status == "A" : false) {
+                absentcount = absentcount + 1;
+              }
+              if (labour.shift? (labour.shift != "" || labour.shift != null) : false) {
+                shiftcount += 1;
+              }
+              if (labour.shift? (labour.status == "P" && (labour.shift != "" || labour.shift != null)) : false) {
+                presentshiftcount += 1;
+              }
+              if (labour.status? (labour.status == "A" && labour.project === selectedProject) : false) {
+                projectAbsentCount += 1;
+              }
+            })
+
+            setCountsState((prev) => ({
+              ...prev, 
+              presentCount: atWorkcount, 
+              absentCount: absentcount, 
+              shiftAssignedCount: shiftcount,
+              pendingAttCount: pendingAttList.length,
+              pendingShiftCount: pendingShiftList.length,
+              markedCount: markedList.length,
+              presentshiftcount,
+              projectAbsentCount
+            }))
+            return true
+          } 
+        })
+
+        if(!dataAvailable) {
+          alert("!No Attendance Data Available in the DB")
+          const dbTeamLabourListCache = JSON.parse(localStorage.getItem("dbTeamLabourList"))
+          setLabours(dbTeamLabourListCache.labours);
+          setLocalLabours(dbTeamLabourListCache.labours);
+          setTeams(dbTeamLabourListCache.teams);
+          setSelectedTeams(dbTeamLabourListCache.teams);
+          setCountsState((prev) => ({
+            ...prev, 
+            presentCount: 0, 
+            absentCount: 0, 
+            shiftAssignedCount: 0,
+            pendingAttCount: 0,
+            pendingShiftCount: 0,
+            markedCount: 0,
+            presentshiftcount: 0,
+            projectAbsentCount: 0
+          }))
+        }
+      } 
+      else {
+        // alert("!No Attendance Data Available in the DB")
+        const dbTeamLabourListCache = JSON.parse(localStorage.getItem("dbTeamLabourList"))
+        setLabours(dbTeamLabourListCache.labours);
+        setLocalLabours(dbTeamLabourListCache.labours);
+        setTeams(dbTeamLabourListCache.teams);
+        setSelectedTeams(dbTeamLabourListCache.teams);
+        setCountsState((prev) => ({
+          ...prev, 
+          presentCount: 0, 
+          absentCount: 0, 
+          shiftAssignedCount: 0,
+          pendingAttCount: 0,
+          pendingShiftCount: 0,
+          markedCount: 0,
+          presentshiftcount: 0,
+          projectAbsentCount: 0
+        }))
+    }
+    setLoadData(true);
+  }
+
+
+  // Handling AtWorkShiftAssignPending page Button Click
+  function handleAtWorkPending(e) {
+    e.preventDefault();
+    navigate("/shiftassign");
+  }
+
+  function handleMarked(e) {
+    e.preventDefault();
+    navigate("/report/labourattendance");
+    const selectedDate = attendanceDate;
+    const selectedProject = project;
+    
+    setLabourAttendance([]);
+
+  
+    if(!selectedDate || !selectedProject) {
+      alert("! Required fields  Date & Project");
+      return;
+    }
   }
 
   return (
@@ -195,8 +383,8 @@ export function LabourAttendance() {
 
         <div className="flex flex-col gap-2">
           <label>Project</label>
-          <select className="w-48 shadow-md select select-sm" onChange={(e)=>setProject(e.target.value)}>
-            <option value={""}>select</option>
+          <select required className="w-48 shadow-md select select-sm" onChange={(e)=>setProject(e.target.value)}>
+            <option></option>
             <option value={"project1"}>Project1</option>
             <option value={"project2"}>Project2</option>
           </select>
@@ -207,8 +395,8 @@ export function LabourAttendance() {
           <select ref={team} className="w-48 shadow-md select select-sm" onChange={(e)=>setSelectedTeam(e)}>
             <option value={"All"}>All</option>
             {
-              teamNamesArray.map((teamName) => {
-                return <option key={teamName} value={teamName}>{teamName}</option>
+              teams.map((teamName, idx) => {
+                return <option key={`${teamName}-${idx}`} value={teamName}>{teamName}</option>
               })
             }
           </select>
@@ -224,8 +412,9 @@ export function LabourAttendance() {
             onClose={closeModal}
             title="Select Team"
             content=""
-            teamNamesArray = {teamNamesArray}
-            setTeamWiseLaboursList = {setTeamWiseLaboursList}
+            setSelectedTeams = {setSelectedTeams}
+            setLocalLabours = {setLocalLabours}
+            localLabours = {localLabours}
           />
         </div>
       </div>
@@ -234,63 +423,109 @@ export function LabourAttendance() {
         <button 
           className={`btn btn-sm bg-gray-500 text-white ${activeScreenBtn? "border-y-2 border-organge-400" : ""}` }
           onClick={()=> {
-            subtractaDayToDate(attendaceDate);
+            subtractaDayToDate(attendanceDate);
             setActiveScreenBtn(true)}}
         >&lt;</button>
         <input 
           className="input" 
           type="date" 
           name="date" 
-          value={attendaceDate} 
+          value={attendanceDate} 
           onChange={(e)=>setAttendanceDate(e.target.value)} 
         />
         <button 
           className="btn btn-sm bg-gray-500 text-white"
-          onClick={()=> addaDayToDate(attendaceDate)}
+          onClick={()=> addaDayToDate(attendanceDate)}
         >&gt;</button>
       </div>
 
-      <div className="w-full p-4 bg-blue-50 flex flex-wrap justify-around">
-        <button className="btn btn-sm bg-blue-400 text-white rounded-md">
+      <div className="w-full p-4 bg-blue-50 flex flex-wrap justify-around gap-2">
+        <div className="w-24 p-2 bg-blue-400 text-sm text-white rounded-md flex justify-center items-center">
           Labours &#40;{countsState.laboursCount}&#41;
-        </button>
-        <button className="btn btn-sm bg-blue-400 text-white rounded-md">
+        </div>
+        <div className="w-24 p-2 bg-blue-400 text-sm text-white rounded-md flex justify-center items-center">
           At Works &#40;{countsState.presentCount}&#41;
-        </button>
-        <button className="btn btn-sm bg-blue-400 text-white rounded-md">
+        </div>
+        <div className="w-24 p-2 bg-blue-400 text-sm text-white rounded-md flex justify-center items-center">
           Shift &#40;{countsState.shiftAssignedCount}&#41;
-        </button>
-        <button className="btn btn-sm bg-blue-400 text-white rounded-md">
+        </div>
+        <div className="w-24 p-2 bg-blue-400 text-sm text-white rounded-md flex justify-center items-center">
           Absent &#40;{countsState.absentCount}&#41;
-        </button>
+        </div>
       </div>
 
       <div className="w-full p-4 flex flex-wrap gap-2 justify-center items-center">
         <button 
           className={`btn btn-xs bg-gray-100  ${activeScreenBtn ? "border-gray-400":""}`}
-          onClick={() => navigate("/labourattendance")}
-          >Pending &#40;{countsState.laboursCount}&#41;
+          onClick={(e) => handleAttendancePending(e)}
+          >Pending &#40;{countsState.pendingAttCount}&#41;
         </button>
         <button 
           className="btn btn-xs bg-gray-100 border-gray-400" 
-          onClick={() => {navigate("/shiftassign"); 
-          handleShiftAssign(); } }
-        >AtWork &#40;{countsState.presentCount}&#41;</button>
+          onClick={ (e) => handleAtWorkPending(e) }
+        >AtWork &#40;{countsState.pendingShiftCount}&#41;</button>
         <button 
           className="btn btn-xs bg-gray-100 border-gray-400" 
-          onClick={() => {navigate("/report/labourattendance"); 
-          handleReport();}}
-        >Marked</button>
+            onClick={ (e) => handleMarked(e) }
+          >Marked &#40;{countsState.markedCount}&#41;</button>
       </div>
 
       <div className="my-4">
         <ul className="">
-          {
-            teamWiseLaboursList&& (
-              teamWiseLaboursList.map((val,idx) => {
-                return <LabourTeamList key={idx} teamObj={val} teamIdx={idx} />
-              })
-            )
+          {loadData &&
+            selectedTeams.map((team, idx) => {
+              return (
+              <li key={`${team}-${idx}`} className="p-2 border-b-2 border-blue-200">
+                <div className="mb-2 text-blue-400">
+                  {team} 
+                  <span className="p-6">
+                    <button className="btn btn-xs" onClick={openModalSingle}>Add Labour-Single</button>
+                    <AddLabourModalSingle
+                      isOpen={isModalOpenSingle}
+                      onClose={closeModalSingle}
+                      title="Add Labour"
+                      content=""
+                      team = {team}
+                      setLocalLabours = {setLocalLabours}
+                      localLabours = {localLabours}
+                    />
+                    <button className="btn btn-xs" onClick={openModalMultiple}>Add Labour-Multiple</button>
+                    <AddLabourModalMultiple
+                      isOpen={isModalOpenMultiple}
+                      onClose={closeModalMultiple}
+                      title="Auto Generate Labour"
+                      content="Just a quick way to create labour profiles - you can always update them later"
+                      team = {team}
+                      setLocalLabours = {setLocalLabours}
+                      localLabours = {localLabours}
+                    />
+                  </span>
+                </div>
+                <ul>                  
+                  {
+                    labours && (
+                      labours
+                      .filter((labour, idx) => labour.teamName === team && (typeof labour.status === 'undefined' || labour.status === ""))
+                      .map((labour,idx, arr) => {
+                        return (
+                        <LabourList 
+                        key={idx}
+                        attendanceDate = {attendanceDate}
+                        project = {project}
+                        labour={labour} 
+                        labourIdx={idx} 
+                        labourAttendance={labourAttendance}
+                        setLabourAttendance={setLabourAttendance}
+                        localLabours = {localLabours}
+                        setLocalLabours = {setLocalLabours}
+                        />)
+                      })
+                    )
+                  }
+                </ul>
+              </li>
+              ) 
+            })
           }
         </ul>
       </div>
@@ -323,91 +558,56 @@ export function LabourAttendance() {
 }
 
 // Rendering On Screen TeamWise Labours List
-function LabourTeamList({teamObj, teamIdx}) {
-  const {labour, setLabour} = useAppContext();
-  
-  const [isModalOpen, setModalOpen] = useState(false);
-
-  // Handling Modal Open and Close Modals
-  const openModal = () => setModalOpen(true);
-  const closeModal = () => setModalOpen(false);
+function LabourList({attendanceDate, project, labour, labourIdx, labourAttendance, setLabourAttendance, localLabours, setLocalLabours}) {
+  const {
+    labours, setLabours
+  } = useAppContext();
 
   // Handling Present Button logic
-  const handlePresent = (labourObj, labourIdx) => {
-    let cacheLabour = Object.assign([], labour);
-    console.log("cachelabour", cacheLabour);
-    // console.log("teamIdx", teamIdx);
-    // console.log("labourObj", labourObj);
-    // console.log("LabourIdx", labourIdx);
-    // console.log("cachelabourTeamIdx", cacheLabour[teamIdx]);
-
-    if(labourObj.labourName == cacheLabour[teamIdx].labours[labourIdx].labourName) {
-      cacheLabour[teamIdx].labours[labourIdx] = {...labourObj, status: "P"}
+  const handleAttendanceUpdate = (labourObj, labourIdx, status) => {
+    if (!project || project === undefined || project === null || project === "") {
+      alert("Select Project to mark attendance");
+      return
     }
+    const confirmUpdate = confirm(`Confirm ${status} for labour ${labourObj.labourName}`)
 
-    setLabour(cacheLabour);
-  }
-
-  // Handling Absent Button Logic
-  const handleAbsent = (labourObj, labourIdx) => {
-    let cacheLabour = Object.assign([], labour);
-
-    if(labourObj.labourName == cacheLabour[teamIdx].labours[labourIdx].labourName) {
-      cacheLabour[teamIdx].labours[labourIdx] = {...labourObj, status: "A"}
+    if(confirmUpdate) {
+      const newAtt = {...labourObj, attendanceDate, project, status, shift: ""};
+      const updatedVal = [...labourAttendance, newAtt];
+  
+      setLabourAttendance(updatedVal);
+      // Removing attendance marked labour from the labourListLocal temp and render
+  
+      const pendingLabourArray = labours.filter((val, idx) => {
+          return val.teamName === labourObj.teamName? val.labourName !== labourObj.labourName : val
+        });
+      setLabours(pendingLabourArray);
+  
+      const pendingLocalLabourArray = localLabours.filter((val, idx) => {
+          return val.teamName === labourObj.teamName? val.labourName !== labourObj.labourName : val
+        });
+      setLocalLabours(pendingLocalLabourArray);
     }
-
-    setLabour(cacheLabour);
   }
 
   return (
-    <li className="p-2 border-b-2 border-blue-200">
-      <div className="mb-2 text-blue-300">
-        {teamObj.teamName} 
-        <span className="p-6">
-          <button className="btn btn-xs" onClick={openModal}>Add Labour</button>
-          <CustomModal
-            isOpen={isModalOpen}
-            onClose={closeModal}
-            title="Add Labour"
-            content=""
-            teamObj = {teamObj}
-          />
-        </span>
-      </div>
-      <div className="mb-4">
-        <ul>
-          {teamObj.labours.map((labourObj, labourIdx) => {
-            return (
-              <li key={labourIdx} className="mb-4">
-                <div className="flex flex-col md:grid md:grid-cols-4 md:gap-4">
-                  <div className="col-span-2 flex flex-row items-center ">
-                    <span><IoIosContact /></span>
-                    <span>{labourObj.labourName}</span>
-                  </div>
-                  <div className="flex flex-row items-center">Status : &nbsp;
-                    {
-                      labourObj.status == "P" ? 
-                      <span className="font-semibold text-green-500">{labourObj.status}</span>
-                      :
-                      <span className="font-semibold text-red-500">{labourObj.status}</span>
-                    }
-                  </div>
-                  <div className="flex gap-2">
-                    <button 
-                      className="btn btn-xs btn-outline btn-success" 
-                      onClick={() => handlePresent(labourObj, labourIdx)}
-                    >Present</button>
-                    <button 
-                      className="btn btn-xs btn-outline btn-error" 
-                      onClick={() => handleAbsent(labourObj, labourIdx)}
-                    >Absent</button>
-                  </div >
-                </div> 
-              </li>
-            )
-          })}
-        </ul>
-      </div>
+    <li className="mb-4">
+      <div className="flex flex-col md:grid md:grid-cols-4 md:gap-4">
+        <div className="col-span-2 flex flex-row items-center ">
+          <span><IoIosContact /></span>
+          <span>{labour.labourName}</span>
+        </div>
+        <div className="flex gap-2">
+          <button 
+            className="btn btn-xs btn-outline btn-success" 
+            onClick={() => handleAttendanceUpdate(labour, labourIdx, "P")}
+          >Present</button>
+          <button 
+            className="btn btn-xs btn-outline btn-error" 
+            onClick={() => handleAttendanceUpdate(labour, labourIdx, "A")}
+          >Absent</button>
+        </div >
+      </div> 
     </li>
   )
 }

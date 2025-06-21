@@ -6,16 +6,20 @@ const AppCtx = createContext(null);
 // Main Context
 export default function AppContext({children}) {
   const [showNewEntry, setShowNewEntry] = useState(true);
-  const [team, setTeam] = useState([]);
-  const [labour, setLabour] = useState([]);
-  const [attendanceData, setAttendanceData] = useState([]);
-  const [teamNamesArray, setTeamNamesArray] = useState([]);
+  const [teams, setTeams] = useState([]);
+  const [labours, setLabours ] = useState([]);
+  const [attendanceDb, setAttendanceDb] = useState([]);
   const [countsState, setCountsState] = useState(() => 
     {return {
     laboursCount: 0,
     presentCount: 0,
     absentCount: 0,
-    shiftAssignedCount: 0
+    pendingAttCount: 0,
+    shiftAssignedCount: 0,
+    pendingShiftCount: 0,
+    markedCount: 0,
+    presentshiftcount: 0,
+    projectAbsentCount: 0
   }});
 
   // Setting TeamWiseLabourArrayList and TeamNamesonly Array
@@ -23,21 +27,11 @@ export default function AppContext({children}) {
     fetch("../labourlist.json", {method: "GET"})
     .then((res) => res.json())
     .then((data) => {
-      setLabour(data.labourlist);
-
-      // Setting TeamNames Only Array
-      const teamList = data.labourlist.map((val) => {
-        return val.teamName
-      })
-      setTeamNamesArray(teamList);
-
-      // Setting Total Labous Count
-      const labourCount = data.labourlist.reduce((acc, teamObj) => {
-        console.log(teamObj)
-        acc = acc + teamObj.labours.length;
-        return acc
-      },0)
-      setCountsState({...countsState, laboursCount: labourCount })
+      // console.log(data);
+      sessionStorage.setItem("dbTeamLabourList",  JSON.stringify(data));
+      // Setting Total Labours Count
+      let labourCount = data.labours.length;
+      setCountsState((prev) => ({...prev, laboursCount: labourCount }))
     })
     .catch((error) => console.log(error))
   },[])
@@ -45,9 +39,9 @@ export default function AppContext({children}) {
   return (
     <AppCtx.Provider value={{
       showNewEntry, setShowNewEntry,
-      team, labour, setLabour,
-      attendanceData, setAttendanceData,
-      teamNamesArray, setTeamNamesArray,
+      labours, setLabours,
+      attendanceDb, setAttendanceDb,
+      teams, setTeams,
       countsState, setCountsState
     }}>
       {children}

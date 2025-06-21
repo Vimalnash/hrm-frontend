@@ -1,12 +1,11 @@
 {
-  "labourlist": [
-    {
-      "teamName": "Sakthivel Team",
-      "labours": [{"labourName": "Labour1"}, {"labourName": "Labour2"}, {"labourName": "Labour3"}]
-    },
-    {
-      "teamName": "Gokul Team",
-      "labours": [{"labourName": "Labour1"}, {"labourName": "Labour2"}, {"labourName": "Labour3"}]
-    }
+  "teams": ["Sakthivel Team", "Gokul Team"],
+  "labours": [
+    {"labourName": "Labour1", "teamName": "Sakthivel Team"}, 
+    {"labourName": "Labour2", "teamName": "Sakthivel Team"}, 
+    {"labourName": "Labour3", "teamName": "Sakthivel Team"},
+    {"labourName": "Labour4", "teamName": "Gokul Team"}, 
+    {"labourName": "Labour5", "teamName": "Gokul Team"}, 
+    {"labourName": "Labour6", "teamName": "Gokul Team"}
   ]
 }

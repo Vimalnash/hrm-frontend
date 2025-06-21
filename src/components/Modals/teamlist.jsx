@@ -2,8 +2,8 @@ import { useState } from "react";
 import { useAppContext } from "../../context/appcontext"
 
 // Multiple selection modal for teams rendering
-export function TeamList({ isOpen, onClose, title, teamNamesArray, setTeamWiseLaboursList }) {
-  const {labour} = useAppContext();
+export function TeamList({ isOpen, onClose, title, setSelectedTeams, localLabours, setLocalLabours  }) {
+  const {setLabours, teams} = useAppContext();
 
   const [selectedList, setSelectedList] = useState([]);
   // console.log(teamNamesArray);
@@ -11,18 +11,21 @@ export function TeamList({ isOpen, onClose, title, teamNamesArray, setTeamWiseLa
   // Handling Selected Array List based on selection.
   function handleChange(teamName) {
     if(selectedList.includes(teamName)) {
-      const removedTeamName = selectedList.filter((val, idx) => val !== teamName)
-      setSelectedList(removedTeamName)
+      const afterRemovedTeamName = selectedList.filter((val, idx) => val !== teamName);
+      setSelectedList(afterRemovedTeamName);
     } else {
-      setSelectedList([...selectedList, teamName])
+      setSelectedList([...selectedList, teamName]);
     }
   }
 
-  // setting TeamWise Labour Array List based on Multiple selected TeamList
-  function showTeamList() {
-    const selectedTeamLaboursList = labour.filter(val => selectedList.includes(val.teamName))
-    // console.log("selectedTeamsObj",selectedTeamLaboursList)
-    setTeamWiseLaboursList(selectedTeamLaboursList);
+  // Setting TeamWise Labour Array List based on Multiple selected TeamList
+  function loadSelectedTeams() {
+    // const dbTeamLabourList =  JSON.parse(localStorage.getItem("dbTeamLabourList"));
+
+    const selectedTeamList = teams.filter(teamName => selectedList.includes(teamName));
+    setSelectedTeams(selectedTeamList);
+    const selectedTeamLaboursList = localLabours.filter(val => selectedList.includes(val.teamName));
+    setLabours(selectedTeamLaboursList);
     onClose();
   }
 
@@ -37,7 +40,7 @@ export function TeamList({ isOpen, onClose, title, teamNamesArray, setTeamWiseLa
                   <label htmlFor="labourname">Team Names</label>
                   <ul>
                     {
-                      teamNamesArray.map((teamName, idx) => {
+                      teams.map((teamName, idx) => {
                         return (
                           <li key={idx}>
                             <label>
@@ -60,7 +63,7 @@ export function TeamList({ isOpen, onClose, title, teamNamesArray, setTeamWiseLa
             </div>
             <div className="modal-action">
               <button className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" onClick={onClose}>✕</button>
-              <button className="w-full btn btn-primary btn-sm" onClick={showTeamList}>Apply</button>
+              <button className="w-full btn btn-primary btn-sm" onClick={loadSelectedTeams}>Apply</button>
             </div>
           </div>
         </dialog>

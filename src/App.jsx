@@ -2,7 +2,7 @@ import React from "react";
 import { Route, Routes } from "react-router-dom"
 import { Sidebar } from "./components/sidebar"
 import { HomePage } from "./pages/HomePage";
-import { LabourAttendance } from "./pages/labour-attendance"
+import { LabourAttendance } from "./pages/labour-attendance";
 import { LabourShiftAssign } from "./pages/labour-shiftassign";
 import { LabourAttendanceReport } from "./pages/labour-attendance-report";
 
