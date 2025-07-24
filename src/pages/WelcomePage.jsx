@@ -1,6 +1,6 @@
 import { PageTitle } from "../components/pagetitle";
 
-export function HomePage() {
+export function WelcomePage() {
   return (
     <>
       <PageTitle><p>Welcome to HRM-Attendance and LabourShift</p></PageTitle>
